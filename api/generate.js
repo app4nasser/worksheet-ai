@@ -1,124 +1,81 @@
-import OpenAI from "openai";
-
+// ⭐ إجبار Vercel على العمل بـ Node.js وليس Edge Runtime
 export const config = {
-  runtime: "edge",
+  runtime: "nodejs"
 };
 
-export default async function handler(req) {
+import OpenAI from "openai";
 
-  // ⚠️ مهم جداً: معالجة طلب OPTIONS لتفعيل CORS
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      status: 204,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-    });
-  }
-
+// ============================
+// 🔥 الدالة الرئيسية
+// ============================
+export default async function handler(req, res) {
   try {
-    const { topic, count, qtype } = await req.json();
-
-    if (!topic || !count || !qtype) {
-      return new Response(JSON.stringify({ error: "Missing parameters" }), {
-        status: 400,
-        headers: {
-          "Access-Control-Allow-Origin": "*",
-        }
-      });
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method Not Allowed" });
     }
 
+    const { topic, type, count } = req.body;
+
+    // التحقق من المدخلات
+    if (!topic || !type || !count) {
+      return res.status(400).json({ error: "Missing parameters" });
+    }
+
+    // مفتاح OpenAI من متغيرات البيئة
     const client = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     });
 
+    // ============================
+    // 🎯 إعداد البرومبت الذكي
+    // ============================
     const prompt = `
-أنت خبير تربوي متقدم.
-أريد منك إنشاء أسئلة تعليمية عالية الجودة حول الموضوع: "${topic}"
-
+أنت خبير تربوي محترف، ومهمتك توليد أسئلة حقيقية وواضحة و عالية الجودة.
+الموضوع: "${topic}"
 عدد الأسئلة المطلوبة: ${count}
-نوع الأسئلة: ${qtype}
+نوع الأسئلة: ${type}
 
-🔵 تعليمات توليد الأسئلة حسب النوع:
+❗ تعليمات مهمة ومُلزمة:
+- إذا كان النوع "اختيار من متعدد":
+    - اكتب السؤال
+    - ثم 4 خيارات تحت السؤال (A - B - C - D)
+    - خيار واحد منها صحيح
+- إذا كان النوع "صح أو خطأ":
+    - يبدأ كل سؤال بعبارة: (صح أو خطأ)
+    - ثم يليه السؤال
+- إذا كان النوع "أسئلة قصيرة":
+    - سؤال يحتاج إجابة قصيرة من الطالب
+- إذا كان النوع "أسئلة مقالية":
+    - سؤال يحتاج إجابة طويلة (3–5 جمل)
+- إذا كان النوع "أسئلة منوعة":
+    - مزيج عشوائي من الأنواع السابقة
+    - كل سؤال يظهر بالشكل الصحيح حسب نوعه
 
-إذا كان النوع **mcq** (اختيار من متعدد):
-- اكتب سؤالًا واضحًا ومباشرًا
-- أضف 4 خيارات فقط
-- اجعل خيارًا واحدًا صحيحًا
-- لا تستخدم أسئلة عامة قابلة للتطبيق على أي موضوع
-- اجعل السؤال متعلقًا مباشر بالموضوع فقط
+❗منع تكرار الأسئلة نهائياً.
+❗الأسئلة يجب أن تعتمد على فهم حقيقي للموضوع.
+❗يُمنع تكرار العنوان داخل السؤال.
+❗لا تستخدم كلمات عامة مثل "أهمية – دور – فوائد" بدون سياق.
+❗اجعل الأسئلة مناسبة لطلاب المدارس.
 
-الصيغة المطلوبة:
-{
- "type": "mcq",
- "question": "نص السؤال",
- "options": ["خيار 1","خيار 2","خيار 3","خيار 4"],
- "answer": "الخيار الصحيح"
-}
+اكتب الأسئلة فقط بدون شرح إضافي أو مقدمة.
+`;
 
-إذا كان النوع **tf** (صح أو خطأ):
-- أنشئ جملًا حقيقية أو خاطئة متعلقة تمامًا بالموضوع
-- إجابة واحدة (صح أو خطأ)
-
-الصيغة:
-{
- "type": "tf",
- "question": "صح أو خطأ: نص الجملة",
- "answer": "صح" أو "خطأ"
-}
-
-إذا كان النوع **short** (سؤال قصير):
-{
- "type": "short",
- "question": "سؤال مباشر متعلق بالموضوع",
- "answer": "إجابة قصيرة دقيقة"
-}
-
-إذا كان النوع **mixed** (منوّعة):
-- وزع الأسئلة بين الأنواع الثلاثة بالتساوي قدر الإمكان
-- كل سؤال يجب أن يتبع مقاييس النوع الخاص به
-
-⚠️ مهم جداً:
-- أعد لي النتيجة بصيغة JSON فقط
-- لا تكتب أي شرح خارجي
-- الصيغة النهائية يجب أن تكون:
-
-{
- "questions": [
-   {...},
-   {...}
- ]
-}
-    `;
-
-    const response = await client.responses.create({
+    const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
-      input: prompt,
+      messages: [
+        { role: "system", content: "أنت خبير تربوي متخصص في تصميم أسئلة تعليمية عالية الجودة." },
+        { role: "user", content: prompt }
+      ],
+      max_tokens: 1200,
+      temperature: 0.4
     });
 
-    const output = response.output_text();
+    const output = completion.choices[0].message.content;
 
-    return new Response(output, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
-      },
-    });
+    return res.status(200).json({ questions: output });
 
-  } catch (err) {
-    return new Response(JSON.stringify({
-      error: "Server error",
-      details: err.message
-    }), {
-      status: 500,
-      headers: {
-        "Access-Control-Allow-Origin": "*",
-      }
-    });
+  } catch (error) {
+    console.error("❌ SERVER ERROR:", error);
+    return res.status(500).json({ error: "Internal Server Error" });
   }
 }
