@@ -1,80 +1,73 @@
 import OpenAI from "openai";
 
-export default async function handler(req, res) {
-  // السماح بالوصول من Netlify (CORS)
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+export const config = {
+  runtime: "edge",
+};
 
-  // السماح لطلبات OPTIONS (مهم جداً)
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
+export default async function handler(req) {
   try {
-    let body = req.body;
-
-    if (!body || typeof body !== "object") {
-      try {
-        body = JSON.parse(req.body || "{}");
-      } catch {
-        body = {};
-      }
-    }
-
-    const { topic, count, qtype } = body;
-
-    if (!topic) {
-      return res.status(400).json({ error: "Missing topic" });
-    }
+    const { topic, count, qtype } = await req.json();
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    const typeText =
-      qtype === "mcq"
-        ? "أسئلة اختيار من متعدد فقط"
-        : qtype === "tf"
-        ? "أسئلة صح أو خطأ فقط"
-        : qtype === "short"
-        ? "أسئلة قصيرة فقط"
-        : "مزيج من الأنواع السابقة";
-
     const prompt = `
-أنت خبير تربوي عربي محترف.
-المطلوب إنشاء ${count} سؤالاً حول موضوع "${topic}"، من نوع: ${typeText}.
-لا تستخدم عنوان الموضوع داخل الأسئلة.
-اكتب كل سؤال مع الإجابة بشكل دقيق وتربوي.
-صيغة JSON فقط كالتالي:
+أنت خبير تربوي. أريد منك إنشاء أسئلة تعليمية حول الموضوع: "${topic}"
+عدد الأسئلة: ${count}
+نوع السؤال: ${qtype}
 
+أعد الإجابات بشكل JSON فقط بدون شرح.
+
+الشروط:
+
+إذا كان النوع "mcq":
+- أنشئ سؤال اختيار من متعدد
+- يحتوي كل سؤال على 4 خيارات
+- خيار واحد صحيح
+- الصيغة:
 {
- "questions":[
-   {
-     "type":"نوع السؤال",
-     "question":"النص",
-     "options":["","","",""],
-     "answer":"الإجابة"
-   }
- ]
+ "type": "mcq",
+ "question": "نص السؤال",
+ "options": ["خيار 1", "خيار 2", "خيار 3", "خيار 4"],
+ "answer": "الخيار الصحيح"
 }
-`.trim();
 
-    const response = await client.chat.completions.create({
+إذا كان النوع "tf":
+{
+ "type": "tf",
+ "question": "صح أو خطأ: نص السؤال",
+ "answer": "صح" أو "خطأ"
+}
+
+إذا كان النوع "short":
+{
+ "type": "short",
+ "question": "نص السؤال القصير",
+ "answer": "إجابة قصيرة"
+}
+
+إذا كان النوع "mixed":
+- وزّع الأنواع الثلاثة عشوائياً  (mcq – tf – short)
+
+أعد كل شيء في مصفوفة بهذا الشكل:
+{ "questions": [ ... ] }
+`;
+
+    const response = await client.responses.create({
       model: "gpt-4o-mini",
-      response_format: { type: "json_object" },
-      messages: [
-        { role: "system", content: "You are an expert Arabic educational question generator." },
-        { role: "user", content: prompt }
-      ],
+      input: prompt,
     });
 
-    const parsed = JSON.parse(response.choices[0].message.content);
-    return res.status(200).json(parsed);
-
+    const text = response.output_text();
+    return new Response(text, {
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
   } catch (err) {
-    console.error("SERVER ERROR:", err);
-    return res.status(500).json({
-      error: "Internal server error",
-      details: err.message
-    });
+    return new Response(
+      JSON.stringify({ error: "خطأ في الخادم", details: err.message }),
+      { status: 500 }
+    );
   }
 }
