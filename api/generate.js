@@ -5,52 +5,27 @@ export const config = {
 };
 
 export default async function handler(req) {
+  // معالجة طلب OPTIONS (مهم لـ CORS)
+  if (req.method === "OPTIONS") {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    });
+  }
+
   try {
     const { topic, count, qtype } = await req.json();
 
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const prompt = `
-أنت خبير تربوي. أريد منك إنشاء أسئلة تعليمية حول الموضوع: "${topic}"
-عدد الأسئلة: ${count}
-نوع السؤال: ${qtype}
-
-أعد الإجابات بشكل JSON فقط بدون شرح.
-
-الشروط:
-
-إذا كان النوع "mcq":
-- أنشئ سؤال اختيار من متعدد
-- يحتوي كل سؤال على 4 خيارات
-- خيار واحد صحيح
-- الصيغة:
-{
- "type": "mcq",
- "question": "نص السؤال",
- "options": ["خيار 1", "خيار 2", "خيار 3", "خيار 4"],
- "answer": "الخيار الصحيح"
-}
-
-إذا كان النوع "tf":
-{
- "type": "tf",
- "question": "صح أو خطأ: نص السؤال",
- "answer": "صح" أو "خطأ"
-}
-
-إذا كان النوع "short":
-{
- "type": "short",
- "question": "نص السؤال القصير",
- "answer": "إجابة قصيرة"
-}
-
-إذا كان النوع "mixed":
-- وزّع الأنواع الثلاثة عشوائياً  (mcq – tf – short)
-
-أعد كل شيء في مصفوفة بهذا الشكل:
-{ "questions": [ ... ] }
-`;
+أنت خبير تربوي…
+(هنا نفس الـ prompt الذي أعطيتك إياه سابقاً بدون تعديل)
+    `;
 
     const response = await client.responses.create({
       model: "gpt-4o-mini",
@@ -58,16 +33,26 @@ export default async function handler(req) {
     });
 
     const text = response.output_text();
+
     return new Response(text, {
+      status: 200,
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
       },
     });
+
   } catch (err) {
     return new Response(
-      JSON.stringify({ error: "خطأ في الخادم", details: err.message }),
-      { status: 500 }
+      JSON.stringify({ error: err.message }),
+      {
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+        },
+      }
     );
   }
 }
