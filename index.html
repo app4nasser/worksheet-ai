@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <title>منصة توليد أوراق العمل الذكية</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet" />
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: "Cairo", sans-serif;
+      background: linear-gradient(to bottom right,#e8f2ff,#f5f7ff,#ffffff);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 980px;
+      margin: 24px;
+      background: #ffffffee;
+      border-radius: 28px;
+      box-shadow: 0 20px 45px rgba(0, 60, 130, 0.18);
+      padding: 26px 28px 18px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    header {
+      text-align: center;
+      font-size: 32px;
+      font-weight: 900;
+      color: #0057c2;
+      margin-bottom: 10px;
+      letter-spacing: 0.3px;
+    }
+
+    .top-buttons {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 6px;
+    }
+
+    .btn-history-top {
+      padding: 8px 16px;
+      border-radius: 999px;
+      background: #eaf0ff;
+      color: #1f3c81;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+
+    .subheader {
+      text-align: center;
+      color: #555;
+      margin-bottom: 18px;
+      font-size: 15px;
+    }
+
+    .card {
+      background: linear-gradient(145deg, #f9fbff, #ffffff);
+      border-radius: 20px;
+      padding: 22px 24px;
+      box-shadow: 0 0 0 1px #e2ebff;
+    }
+
+    label {
+      font-weight: 700;
+      display: block;
+      margin-bottom: 6px;
+      color: #12345b;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #c9d6f5;
+      font-size: 16px;
+      margin-bottom: 14px;
+    }
+
+    .options-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px 20px;
+      margin: 8px 0 18px;
+    }
+
+    .option-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: #f2f5ff;
+      cursor: pointer;
+      border: 1px solid transparent;
+      font-size: 14px;
+    }
+
+    .btn-main {
+      width: 100%;
+      padding: 14px;
+      border-radius: 18px;
+      font-size: 19px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #4aa3ff, #2f7fe8);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 10px 24px rgba(0, 120, 255, 0.45);
+    }
+
+    .hidden { display: none !important; }
+
+    /* شاشة الأسئلة */
+    .worksheet-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .worksheet-title {
+      text-align: center;
+      font-size: 26px;
+      font-weight: 900;
+      color: #005bbb;
+      margin-bottom: 14px;
+    }
+
+    .worksheet-container {
+      background: #ffffff;
+      border-radius: 20px;
+      padding: 20px;
+      max-height: 65vh;
+      overflow-y: auto;
+      border: 1px solid #dce4ff;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.05);
+    }
+
+    .question {
+      border: 1px solid #d6dcff;
+      background: #f5f7ff;
+      padding: 12px;
+      border-radius: 14px;
+      margin-bottom: 12px;
+    }
+
+    .question-header {
+      font-weight: 800;
+      color: #1f2e6a;
+      font-size: 15px;
+      margin-bottom: 4px;
+    }
+
+    .answer {
+      color: #106c29;
+      font-weight: 800;
+      display: none;
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .btn-pill {
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: none;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .btn-export { background: #fff3b3; color: #806300; }
+    .btn-answers { background: #c9ffd2; color: #0b4b19; }
+    .btn-new { width: 100%; margin-top: 18px; background: #e8efff; color: #24408e; }
+
+    /* صندوق بيانات المصمم */
+    .designer-box {
+      background: #eaf6ff;
+      border: 1px solid #cde6ff;
+      padding: 14px;
+      border-radius: 16px;
+      margin-top: 18px;
+      text-align: center;
+      color: #d40000;
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.8;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+
+    /* شاشة أوراق سابقة تسـتخدم نفس شكل الوعاء */
+  </style>
+</head>
+
+<body>
+
+<div class="app">
+
+  <div class="top-buttons">
+    <button class="btn-history-top" id="historyBtnTop">أوراق العمل السابقة</button>
+  </div>
+
+  <header>منصة توليد أوراق العمل الذكية</header>
+  <div class="subheader">
+    اكتب موضوع الورقة واختر عدد الأسئلة ونوعها وسيتم توليد أسئلة قوية ومناسبة للموضوع
+  </div>
+
+  <!-- شاشة البداية -->
+  <section id="homeScreen">
+    <div class="card">
+      <label>موضوع ورقة العمل</label>
+      <input id="topicInput" type="text" placeholder="مثال: الشمس، الماء، الحاسوب، مهارات التفكير..." />
+
+      <label>اختر عدد الأسئلة</label>
+      <div class="options-row">
+        <label class="option-item"><input name="count" type="radio" value="5"> 5 أسئلة</label>
+        <label class="option-item"><input name="count" type="radio" value="10"> 10 أسئلة</label>
+        <label class="option-item"><input name="count" type="radio" value="15"> 15 سؤالاً</label>
+        <label class="option-item"><input name="count" type="radio" value="20"> 20 سؤالاً</label>
+      </div>
+
+      <label>نوع الأسئلة</label>
+      <div class="options-row">
+        <label class="option-item"><input name="qtype" type="radio" value="mcq"> اختيار من متعدد</label>
+        <label class="option-item"><input name="qtype" type="radio" value="tf"> صح أو خطأ</label>
+        <label class="option-item"><input name="qtype" type="radio" value="short"> أسئلة قصيرة</label>
+        <label class="option-item"><input name="qtype" type="radio" value="mixed"> أسئلة منوعة</label>
+      </div>
+
+      <button class="btn-main" id="generateBtn">توليد ورقة العمل</button>
+    </div>
+
+    <!-- بيانات المصمم تظهر في الصفحة الأولى -->
+    <div class="designer-box">
+      مبادرة معلمة اللغة العربية عفاف حمود الفضلي<br />
+      مدرسة النسيم الثانوية الأولى بالعيون - مديرة المدرسة سارة الربيع<br />
+      إدارة التعليم بالأحساء
+    </div>
+  </section>
+
+  <!-- شاشة عرض الأسئلة -->
+  <section id="worksheetScreen" class="hidden">
+    <div class="worksheet-header">
+      <button class="btn-pill btn-export" id="exportWordBtn">تصدير Word</button>
+      <button class="btn-pill btn-answers" id="showAnswersBtn">عرض الإجابات</button>
+    </div>
+
+    <div id="worksheetTitle" class="worksheet-title"></div>
+    <div id="worksheetContainer" class="worksheet-container"></div>
+
+    <button class="btn-pill btn-new" id="newWorksheetBtn">توليد ورقة جديدة</button>
+
+    <!-- صندوق بيانات المصمم في صفحة الأسئلة -->
+    <div class="designer-box">
+      مبادرة معلمة اللغة العربية عفاف حمود الفضلي<br />
+      مدرسة النسيم الثانوية الأولى بالعيون - مديرة المدرسة سارة الربيع<br />
+      إدارة التعليم بالأحساء
+    </div>
+  </section>
+
+  <!-- شاشة أوراق العمل السابقة -->
+  <section id="historyScreen" class="hidden">
+    <div class="worksheet-header" style="margin-bottom: 10px;">
+      <span style="font-weight:900;color:#1f3c81;font-size:18px;">أوراق العمل السابقة</span>
+      <button class="btn-pill btn-new" id="historyBackBtn">رجوع</button>
+    </div>
+
+    <div id="historyList" class="worksheet-container"></div>
+
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <button class="btn-pill btn-new" id="historyRefreshBtn">تحديث</button>
+      <button class="btn-pill" id="deleteSelectedBtn" style="background:#ffe2e2;color:#8b1010;">
+        مسح الأوراق المحددة
+      </button>
+    </div>
+  </section>
+
+  <!-- مربع رسائل الخطأ -->
+  <div id="errorBox" class="hidden" style="color:#b00020;margin-top:12px;font-weight:700;text-align:center;"></div>
+
+</div> <!-- نهاية .app -->
+
+<script>
+  // استدعاء الـ API من نفس الدومين (لا يوجد CORS)
+  const API_URL = "/api/generate";
+  const STORAGE_KEY = "smart_worksheets_v4";
+
+  const homeScreen = document.getElementById("homeScreen");
+  const worksheetScreen = document.getElementById("worksheetScreen");
+  const historyScreen = document.getElementById("historyScreen");
+
+  const topicInput = document.getElementById("topicInput");
+  const worksheetTitle = document.getElementById("worksheetTitle");
+  const worksheetContainer = document.getElementById("worksheetContainer");
+  const historyList = document.getElementById("historyList");
+  const errorBox = document.getElementById("errorBox");
+
+  const generateBtn = document.getElementById("generateBtn");
+  const showAnswersBtn = document.getElementById("showAnswersBtn");
+  const exportWordBtn = document.getElementById("exportWordBtn");
+  const newWorksheetBtn = document.getElementById("newWorksheetBtn");
+
+  const historyBtnTop = document.getElementById("historyBtnTop");
+  const historyBackBtn = document.getElementById("historyBackBtn");
+  const historyRefreshBtn = document.getElementById("historyRefreshBtn");
+  const deleteSelectedBtn = document.getElementById("deleteSelectedBtn");
+
+  let currentWorksheet = null;
+
+  function showHome() {
+    homeScreen.classList.remove("hidden");
+    worksheetScreen.classList.add("hidden");
+    historyScreen.classList.add("hidden");
+  }
+
+  function showWorksheet() {
+    homeScreen.classList.add("hidden");
+    worksheetScreen.classList.remove("hidden");
+    historyScreen.classList.add("hidden");
+  }
+
+  function showHistory() {
+    homeScreen.classList.add("hidden");
+    worksheetScreen.classList.add("hidden");
+    historyScreen.classList.remove("hidden");
+    loadHistoryList();
+  }
+
+  function getSelectedCount() {
+    const el = document.querySelector("input[name='count']:checked");
+    return el ? Number(el.value) : null;
+  }
+
+  function getSelectedQType() {
+    const el = document.querySelector("input[name='qtype']:checked");
+    return el ? el.value : null;
+  }
+
+  function showError(msg) {
+    errorBox.textContent = msg;
+    errorBox.classList.remove("hidden");
+  }
+
+  function hideError() {
+    errorBox.classList.add("hidden");
+    errorBox.textContent = "";
+  }
+
+  function setLoading(isLoading) {
+    if (isLoading) {
+      generateBtn.textContent = "جاري توليد الأسئلة...";
+      generateBtn.disabled = true;
+    } else {
+      generateBtn.textContent = "توليد ورقة العمل";
+      generateBtn.disabled = false;
+    }
+  }
+
+  generateBtn.addEventListener("click", async () => {
+    hideError();
+    const topic = topicInput.value.trim();
+    const count = getSelectedCount();
+    const qtype = getSelectedQType();
+
+    if (!topic) { showError("الرجاء كتابة موضوع ورقة العمل."); return; }
+    if (!count) { showError("الرجاء اختيار عدد الأسئلة."); return; }
+    if (!qtype) { showError("الرجاء اختيار نوع الأسئلة."); return; }
+
+    setLoading(true);
+    worksheetTitle.textContent = topic;
+    worksheetContainer.innerHTML = "🔄 جاري توليد الأسئلة، يرجى الانتظار...";
+    showWorksheet();
+    currentWorksheet = null;
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic, count, type: qtype })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Server error:", data);
+        worksheetContainer.innerHTML = "❌ حدث خطأ في الخادم أثناء توليد الأسئلة.";
+        setLoading(false);
+        return;
+      }
+
+      displayQuestions(topic, data.questions);
+      setLoading(false);
+
+    } catch (err) {
+      console.error(err);
+      worksheetContainer.innerHTML = "❌ حدث خطأ أثناء الاتصال بخادم توليد الأسئلة.";
+      setLoading(false);
+    }
+  });
+
+  function displayQuestions(topic, questions) {
+    worksheetTitle.textContent = topic;
+    worksheetContainer.innerHTML = "";
+
+    if (Array.isArray(questions)) {
+      questions.forEach((q, i) => {
+        const box = document.createElement("div");
+        box.className = "question";
+
+        const header = document.createElement("div");
+        header.className = "question-header";
+
+        const type = q.type || "short";
+        const label =
+          type === "mcq" ? "اختيار من متعدد" :
+          type === "tf" ? "صح أو خطأ" :
+          type === "short" ? "سؤال قصير" :
+          "سؤال";
+
+        header.textContent = `السؤال ${i + 1} (${label})`;
+        box.appendChild(header);
+
+        let qText = q.question || "";
+        if (type === "tf" && !qText.trim().startsWith("صح أو خطأ")) {
+          qText = "صح أو خطأ: " + qText;
+        }
+
+        const body = document.createElement("div");
+        body.className = "question-body";
+        body.innerHTML = qText;
+        box.appendChild(body);
+
+        if (type === "mcq" && Array.isArray(q.options) && q.options.length) {
+          const ul = document.createElement("ul");
+          ul.style.marginBottom = "6px";
+          ul.style.paddingRight = "18px";
+          q.options.forEach(opt => {
+            const li = document.createElement("li");
+            li.textContent = opt;
+            ul.appendChild(li);
+          });
+          box.appendChild(ul);
+        }
+
+        const ans = document.createElement("div");
+        ans.className = "answer";
+        ans.textContent = "الإجابة: " + (q.answer || "");
+        box.appendChild(ans);
+
+        worksheetContainer.appendChild(box);
+      });
+
+    } else if (typeof questions === "string") {
+      const div = document.createElement("div");
+      div.className = "question";
+      div.innerHTML = questions.replace(/\n/g, "<br>");
+      worksheetContainer.appendChild(div);
+    } else {
+      worksheetContainer.innerHTML = "⚠️ لم يتم توليد أسئلة مناسبة لهذا الموضوع.";
+      return;
+    }
+
+    currentWorksheet = {
+      id: Date.now().toString(),
+      title: topic,
+      html: worksheetContainer.innerHTML,
+      date: new Date().toISOString()
+    };
+  }
+
+  showAnswersBtn.addEventListener("click", () => {
+    document.querySelectorAll(".answer").forEach(a => a.style.display = "block");
+  });
+
+  newWorksheetBtn.addEventListener("click", () => {
+    if (currentWorksheet) {
+      const wantSave = confirm("هل تريد حفظ ورقة العمل الحالية في أوراقك السابقة؟");
+      if (wantSave) saveWorksheet(currentWorksheet);
+    }
+    showHome();
+  });
+
+  function loadWorksheets() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }
+    catch { return []; }
+  }
+
+  function saveWorksheet(w) {
+    try {
+      const existing = loadWorksheets();
+      existing.push(w);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(existing));
+    } catch (e) { console.error("LocalStorage error:", e); }
+  }
+
+  function loadHistoryList() {
+    const items = loadWorksheets();
+    historyList.innerHTML = "";
+
+    if (!items.length) {
+      historyList.innerHTML = "<div style='text-align:center;color:#666;'>لا توجد أوراق عمل محفوظة حتى الآن.</div>";
+      return;
+    }
+
+    items.slice().sort((a,b) => (b.date||0) - (a.date||0)).forEach(w => {
+      const row = document.createElement("div");
+      row.className = "question";
+      row.style.display = "flex";
+      row.style.justifyContent = "space-between";
+      row.style.alignItems = "center";
+
+      const left = document.createElement("div");
+      const check = document.createElement("input");
+      check.type = "checkbox";
+      check.className = "history-check";
+      check.dataset.id = w.id;
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = w.title;
+      btn.style.border = "none";
+      btn.style.background = "transparent";
+      btn.style.color = "#1f3c81";
+      btn.style.fontWeight = "800";
+      btn.style.textDecoration = "underline";
+      btn.style.cursor = "pointer";
+      btn.dataset.id = w.id;
+
+      left.appendChild(check);
+      left.appendChild(document.createTextNode(" "));
+      left.appendChild(btn);
+
+      const right = document.createElement("div");
+      right.style.fontSize = "12px";
+      right.style.color = "#777";
+      right.textContent = w.date ? new Date(w.date).toLocaleString("ar-EG") : "";
+
+      row.appendChild(left);
+      row.appendChild(right);
+      historyList.appendChild(row);
+
+      btn.addEventListener("click", () => openWorksheetFromHistory(w.id));
+    });
+  }
+
+  function openWorksheetFromHistory(id) {
+    const items = loadWorksheets();
+    const w = items.find(x => x.id === id);
+    if (!w) return;
+    currentWorksheet = w;
+    worksheetTitle.textContent = w.title;
+    worksheetContainer.innerHTML = w.html || "";
+    showWorksheet();
+  }
+
+  historyBtnTop.addEventListener("click", showHistory);
+  historyBackBtn.addEventListener("click", () => {
+    if (currentWorksheet) showWorksheet(); else showHome();
+  });
+  historyRefreshBtn.addEventListener("click", loadHistoryList);
+
+  deleteSelectedBtn.addEventListener("click", () => {
+    const checks = Array.from(historyList.querySelectorAll(".history-check"));
+    const selectedIds = checks.filter(c => c.checked).map(c => c.dataset.id);
+    if (!selectedIds.length) { alert("الرجاء تحديد أوراق العمل التي ترغب في مسحها."); return; }
+    if (!confirm("هل أنت متأكد من مسح الأوراق المحددة؟")) return;
+
+    const items = loadWorksheets();
+    const remaining = items.filter(w => !selectedIds.includes(w.id));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining));
+    loadHistoryList();
+  });
+
+  exportWordBtn.addEventListener("click", () => {
+    if (!worksheetTitle.textContent || !worksheetContainer.innerHTML.trim()) {
+      alert("لا توجد ورقة عمل حالياً لتصديرها.");
+      return;
+    }
+
+    const title = worksheetTitle.textContent;
+    const questionsHtml = worksheetContainer.innerHTML;
+
+    const answers = Array.from(worksheetContainer.querySelectorAll(".answer"))
+      .map((a, idx) => {
+        const txt = a.textContent.replace("الإجابة:", "").trim();
+        return `<p>السؤال ${idx + 1}: ${txt || "—"}</p>`;
+      })
+      .join("");
+
+    const html =
+      `<html dir="rtl">
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: 'Cairo', Arial, sans-serif; direction: rtl; }
+            h1 { text-align: center; color: green; margin-bottom: 20px; }
+            .question { margin-bottom: 15px; padding: 10px; border: 1px solid #aaa; border-radius: 8px; }
+            .answers-title {
+              page-break-before: always;
+              text-align: center;
+              color: #0057c2;
+              font-weight: bold;
+              font-size: 20px;
+              margin-top: 20px;
+              margin-bottom: 10px;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>${title}</h1>
+          ${questionsHtml}
+          <div class="answers-title">الإجابات النموذجية</div>
+          ${answers || "<p>لم يتم تحديد إجابات.</p>"}
+        </body>
+       </html>`;
+
+    const blob = new Blob(['\ufeff', html], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${title}.doc`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
+
+  showHome();
+</script>
+
+</body>
+</html>
