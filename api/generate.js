@@ -1,81 +1,102 @@
-// ⭐ إجبار Vercel على العمل بـ Node.js وليس Edge Runtime
+// api/generate.js
 export const config = {
-  runtime: "nodejs"
+  runtime: "nodejs",
 };
 
 import OpenAI from "openai";
 
-// ============================
-// 🔥 الدالة الرئيسية
-// ============================
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 export default async function handler(req, res) {
   try {
     if (req.method !== "POST") {
       return res.status(405).json({ error: "Method Not Allowed" });
     }
 
-    const { topic, type, count } = req.body;
+    const { topic, count, type } = req.body || {};
 
-    // التحقق من المدخلات
-    if (!topic || !type || !count) {
+    if (!topic || !count || !type) {
       return res.status(400).json({ error: "Missing parameters" });
     }
 
-    // مفتاح OpenAI من متغيرات البيئة
-    const client = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY
-    });
+    const maxQuestions = Math.min(Math.max(parseInt(count, 10) || 5, 3), 20);
 
-    // ============================
-    // 🎯 إعداد البرومبت الذكي
-    // ============================
     const prompt = `
-أنت خبير تربوي محترف، ومهمتك توليد أسئلة حقيقية وواضحة و عالية الجودة.
-الموضوع: "${topic}"
-عدد الأسئلة المطلوبة: ${count}
-نوع الأسئلة: ${type}
+أنت خبير تربوي محترف في إعداد أسئلة مدرسية عالية الجودة.
 
-❗ تعليمات مهمة ومُلزمة:
-- إذا كان النوع "اختيار من متعدد":
-    - اكتب السؤال
-    - ثم 4 خيارات تحت السؤال (A - B - C - D)
-    - خيار واحد منها صحيح
-- إذا كان النوع "صح أو خطأ":
-    - يبدأ كل سؤال بعبارة: (صح أو خطأ)
-    - ثم يليه السؤال
-- إذا كان النوع "أسئلة قصيرة":
-    - سؤال يحتاج إجابة قصيرة من الطالب
-- إذا كان النوع "أسئلة مقالية":
-    - سؤال يحتاج إجابة طويلة (3–5 جمل)
-- إذا كان النوع "أسئلة منوعة":
-    - مزيج عشوائي من الأنواع السابقة
-    - كل سؤال يظهر بالشكل الصحيح حسب نوعه
+المطلوب:
+- توليد ${maxQuestions} أسئلة حول الموضوع: "${topic}"
+- نوع الأسئلة المطلوب: "${type}"
 
-❗منع تكرار الأسئلة نهائياً.
-❗الأسئلة يجب أن تعتمد على فهم حقيقي للموضوع.
-❗يُمنع تكرار العنوان داخل السؤال.
-❗لا تستخدم كلمات عامة مثل "أهمية – دور – فوائد" بدون سياق.
-❗اجعل الأسئلة مناسبة لطلاب المدارس.
+التعليمات:
 
-اكتب الأسئلة فقط بدون شرح إضافي أو مقدمة.
+1) إذا كان النوع "mcq" (اختيار من متعدد):
+   - اكتب سؤالاً واضحاً يعتمد على المحتوى العلمي الحقيقي للموضوع.
+   - أضف 4 خيارات (A,B,C,D) في الحقل options.
+   - اجعل خياراً واحداً فقط صحيحاً، واذكره في حقل answer (بنص الخيار نفسه).
+
+2) إذا كان النوع "tf" (صح أو خطأ):
+   - اكتب جمل قابلة للحكم صح أو خطأ.
+   - ضع في answer إما "صح" أو "خطأ".
+   - لا تكرر نفس الصياغات.
+
+3) إذا كان النوع "short" (أسئلة قصيرة):
+   - أسئلة جوابها قصير (كلمة أو جملة قصيرة).
+   - ضع الإجابة النموذجية في answer.
+
+4) إذا كان النوع "mixed" (أسئلة منوعة):
+   - امزج بين الأنواع الثلاثة السابقة.
+   - لكل سؤال حدد type المناسب (mcq أو tf أو short).
+
+5) ممنوع:
+   - تكرار نفس السؤال بصياغة سطحية.
+   - إدخال عنوان الورقة داخل كل سؤال بطريقة يمكن استبدالها بأي عنوان.
+   - أسئلة عامة جداً لا ترتبط بالمحتوى مثل "ما أهمية هذا الموضوع؟" بدون سياق واضح.
+
+المخرجات يجب أن تكون بصيغة JSON فقط، بالشكل التالي تماماً:
+
+{
+  "questions": [
+    {
+      "type": "mcq" | "tf" | "short",
+      "question": "نص السؤال هنا...",
+      "options": ["اختيار 1","اختيار 2","اختيار 3","اختيار 4"], // فقط مع mcq
+      "answer": "الإجابة النموذجية هنا"
+    }
+  ]
+}
+
+لا تكتب أي نص خارج JSON.
 `;
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "أنت خبير تربوي متخصص في تصميم أسئلة تعليمية عالية الجودة." },
-        { role: "user", content: prompt }
+        { role: "system", content: "أنت خبير تربوي في تصميم أسئلة تعليمية عالية الجودة." },
+        { role: "user", content: prompt },
       ],
-      max_tokens: 1200,
-      temperature: 0.4
+      response_format: { type: "json_object" },
+      temperature: 0.4,
+      max_tokens: 1400,
     });
 
-    const output = completion.choices[0].message.content;
+    let parsed;
+    try {
+      parsed = JSON.parse(completion.choices[0].message.content);
+    } catch (e) {
+      console.error("JSON parse error:", e);
+      return res.status(500).json({ error: "Failed to parse questions JSON." });
+    }
 
-    return res.status(200).json({ questions: output });
+    if (!parsed || !Array.isArray(parsed.questions)) {
+      return res.status(500).json({ error: "Invalid questions format." });
+    }
 
+    return res.status(200).json({ questions: parsed.questions });
   } catch (error) {
-    console.error("❌ SERVER ERROR:", error);
+    console.error("SERVER ERROR:", error);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
